@@ -28,14 +28,24 @@ df_hhis["k"] = df_hhis["k"].apply(to_str)
 df = df_hhis.merge(df_trendeo, how="outer", left_on="k", right_on="Code HS6 2022")
 df.drop(columns=[c for c in df.columns if c[0] == "i"], inplace=True)
 
+order_col = ["Code HS6", "Label HS6", "HHi Européen", "HHi Mondial", "Part UE CF", "Part UE CDV",
+             "Taux de couverture Exportations/Importations", "Taux de couverture de transit (Transit/Importations)", "Taux de couverture Exportations/Importations françaises",
+             "HHI CF", "HHI CDV", "Code ISIC", "Label ISIC", "Code HS6 2017",
+             "Importations", "Exportations", "Valeur des flux transitant dans l'UE", "Importations françaises", "Exportations françaises", "Valeur des échanges mondiaux",
+              "Quantités importées", "Quantités exportées", "Quantités transitant dans l'UE", "Quantités importées en France", "Quantité exportées en France", "Quantités totales échangées",
+              "Premier exporateur vers l'UE", "Premier exportateur mondial", "Deuxième exporateur vers l'UE", "Deuxième exportateur mondial", "Troisième exporateur vers l'UE", "Troisième exportateur mondial", "Quatrième exporateur vers l'UE", "Quatrième exportateur mondial", "Cinquième exporateur vers l'UE", "Cinquième exportateur mondial",
+              "Part du premier exportateur vers l'UE", "Part du premier exportateur mondial", "Part du deuxième exportateur vers l'UE", "Part du deuxième exportateur mondial", "Part du troisième exportateur vers l'UE", "Part du troisième exportateur mondial", "Part du quatrième exportateur vers l'UE", "Part du quatrième exportateur mondial", "Part du cinquième exportateur vers l'UE", "Part du cinquième exportateur mondial"]
+
+df = df[order_col]
+
 # --- Sidebar : Filtres globaux ---
 st.sidebar.header("Filtres globaux")
 
 log_values = np.linspace(-3, 6, 901)
-filter_v_imp_fr = st.sidebar.checkbox("Filtrer les produits grâce aux importations françaises 2024", key="filter_v_imp_fr")
+filter_v_imp_fr = st.sidebar.checkbox("Filtrer les produits grâce aux importations européennes 2024", key="filter_v_imp_fr")
 if filter_v_imp_fr:
-    log_value_v_imp_fr = st.sidebar.select_slider("Importations françaises (en 1000$) supérieur à :", options=log_values, value=-3, format_func=lambda x: f"{10**x:.3f}")
-    df = df[df["v_imp_fr"] >= 10**log_value_v_imp_fr]
+    log_value_v_imp_fr = st.sidebar.select_slider("Importations européennes (en 1000$) supérieur à :", options=log_values, value=-3, format_func=lambda x: f"{10**x:.3f}")
+    df = df[df["Importations"] >= 10**log_value_v_imp_fr]
 
 # Filtre hs2
 hs2_filter = st.sidebar.radio(
@@ -130,82 +140,19 @@ elif hs2_filter2 == "Tous les produits sauf les agroalimentaires":
 l_cols = ["product", f"prop_methodes_in_top_{y_percent}%", "Description", "v_imp_fr"] + [c for c in df.columns if (str(c)[:3] == "hhi")|(str(c)[0] == "t")] + ["IGPC", "IGPC_rank", "hs4", "hs2", "Description_hs4", "Description_hs2", "2007", "2002"] + [c for c in df.columns if (str(c)[0] == "c")|(str(c)[0] == "N")|(str(c)[0] == "i")]
 df = df[l_cols]
 
-# --- Affichage par HS2/HS4 ---
-show_by_hs = st.checkbox("Afficher par HS2/HS4", key="show_by_hs")
+# --- Sélection des colonnes à afficher ---
+all_columns = df.columns.tolist()
+default_columns = df.columns[:11]
+selected_columns = st.multiselect(
+    "Sélectionne les colonnes à afficher :",
+    options=all_columns,
+    default=default_columns
+)
 
-if show_by_hs:
-    # Regrouper par HS2 ou HS4
-    group_by = st.radio("Regrouper par :", options=["HS2", "HS4"], index=0)
-    if group_by == "HS2":
-        df["hhi_EU_s"] = df["hhi_EU"]*df["v_imp_fr"]
-        df["IGPC_s"] = df["IGPC"]*df["v_imp_fr"]
-        df["IGPC_rank_s"] = df["IGPC_rank"]*df["v_imp_fr"]
-        grouped = df.groupby(["hs2", "Description_hs2"]).agg(
-            nb_produits=("product", "count"),
-            produits=("product", lambda x: list(x)),
-            v_imp_fr=("v_imp_fr", "sum"),
-            v_imp_fr_nan=("v_imp_fr", lambda x: x.isna().all()),
-            hhi_EU_s=("hhi_EU_s", "sum"),
-            hhi_EU_nan=("hhi_EU_s", lambda x: x.isna().all()),
-            IGPC_s=("IGPC_s", "sum"),
-            IGPC_nan=("IGPC_s", lambda x: x.isna().all()),
-            IGPC_rank_s=("IGPC_rank_s", "sum"),
-            IGPC_rank_nan=("IGPC_rank_s", lambda x: x.isna().all())
-        ).reset_index()
-        grouped.loc[grouped["v_imp_fr_nan"], "v_imp_fr"] = np.nan
-        grouped["hhi_EU_moy"] = grouped["hhi_EU_s"] / grouped["v_imp_fr"]
-        grouped.loc[grouped["hhi_EU_nan"], "hhi_EU_moy"] = np.nan
-        grouped["IGPC_moy"] = grouped["IGPC_s"] / grouped["v_imp_fr"]
-        grouped.loc[grouped["IGPC_nan"], "IGPC_moy"] = np.nan
-        grouped["IGPC_rank_moy"] = grouped["IGPC_rank_s"] / grouped["v_imp_fr"]
-        grouped.loc[grouped["IGPC_rank_nan"], "IGPC_rank_moy"] = np.nan
-        grouped = grouped[["hs2", "Description_hs2", "nb_produits", "v_imp_fr", "hhi_EU_moy", "IGPC_moy", "IGPC_rank_moy", "produits"]]
-        st.write(f"### Produits groupés par {group_by}")
-        st.write(f"Il y a {len(df)} produits (HS6) \"essentiels\" et {len(grouped)} catégories HS2 contenant au moins un produit \"essentiel\"")
-        st.dataframe(grouped)
-        df=grouped
-    else:
-        df["hhi_EU_s"] = df["hhi_EU"]*df["v_imp_fr"]
-        df["IGPC_s"] = df["IGPC"]*df["v_imp_fr"]
-        df["IGPC_rank_s"] = df["IGPC_rank"]*df["v_imp_fr"]
-        grouped = df.groupby(["hs4", "Description_hs4"]).agg(
-            nb_produits=("product", "count"),
-            produits=("product", lambda x: list(x)),
-            v_imp_fr=("v_imp_fr", "sum"),
-            v_imp_fr_nan=("v_imp_fr", lambda x: x.isna().all()),
-            hhi_EU_s=("hhi_EU_s", "sum"),
-            hhi_EU_nan=("hhi_EU_s", lambda x: x.isna().all()),
-            IGPC_s=("IGPC_s", "sum"),
-            IGPC_nan=("IGPC_s", lambda x: x.isna().all()),
-            IGPC_rank_s=("IGPC_rank_s", "sum"),
-            IGPC_rank_nan=("IGPC_rank_s", lambda x: x.isna().all())
-        ).reset_index()
-        grouped.loc[grouped["v_imp_fr_nan"], "v_imp_fr"] = np.nan
-        grouped["hhi_EU_moy"] = grouped["hhi_EU_s"] / grouped["v_imp_fr"]
-        grouped.loc[grouped["hhi_EU_nan"], "hhi_EU_moy"] = np.nan
-        grouped["IGPC_moy"] = grouped["IGPC_s"] / grouped["v_imp_fr"]
-        grouped.loc[grouped["IGPC_nan"], "IGPC_moy"] = np.nan
-        grouped["IGPC_rank_moy"] = grouped["IGPC_rank_s"] / grouped["v_imp_fr"]
-        grouped.loc[grouped["IGPC_rank_nan"], "IGPC_rank_moy"] = np.nan
-        grouped = grouped[["hs4", "Description_hs4", "nb_produits", "v_imp_fr", "hhi_EU_moy", "IGPC_moy", "IGPC_rank_moy", "produits"]]
-        st.write(f"### Produits groupés par {group_by}")
-        st.write(f"Il y a {len(df)} produits (HS6) \"essentiels\" et {len(grouped)} catégories HS4 contenant au moins un produit \"essentiel\"")
-        st.dataframe(grouped)
-        df=grouped
-else:
-    # --- Sélection des colonnes à afficher ---
-    all_columns = df.columns.tolist()
-    default_columns = df.columns[:11]
-    selected_columns = st.multiselect(
-        "Sélectionne les colonnes à afficher :",
-        options=all_columns,
-        default=default_columns
-    )
-
-    # --- Affichage du tableau ---
-    st.write("### Tableau des produits")
-    st.write(f"Il y a {len(df)} produits (HS6) \"essentiels\"")
-    st.dataframe(df[selected_columns])
+# --- Affichage du tableau ---
+st.write("### Tableau des produits")
+st.write(f"Il y a {len(df)} produits (HS6) \"essentiels\"")
+st.dataframe(df[selected_columns])
 
 # --- Téléchargement des résultats ---
 nom_fichier = st.text_input("Nom du fichier à télécharger (sans extension) :", "resultats_filtres")
