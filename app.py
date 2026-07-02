@@ -128,7 +128,6 @@ st.dataframe(df[selected_columns])
 
 # --- Téléchargement des résultats ---
 nom_fichier = st.text_input("Nom du fichier à télécharger (sans extension) :", value="resultats_filtres", key="nom_fichier")
-st.write(nom_fichier)
 
 format = st.radio(
     "Format",
