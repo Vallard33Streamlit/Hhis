@@ -6,37 +6,8 @@ import os
 from io import BytesIO
 
 st.set_page_config(layout="wide")
-df_trendeo = pd.read_excel("Fusion_listes_HHI.xlsx", sheet_name="Long list finale").drop(columns=["Indices HHI EU"])
-df_hhis = pd.read_excel("hhis_2.xlsx").drop(columns=["product"])
 
-def to_str(x):
-    if np.isnan(x):
-        return np.nan
-    else:
-        s = str(int(x))
-        if len(s) % 2 == 0:
-            return s
-        else :
-            return "0" + s
-
-
-df_trendeo["Code HS6 2022"] = df_trendeo["Code HS6 2022"].apply(to_str)
-df_trendeo["Code HS6 2017 associé"] = df_trendeo["Code HS6 2017 associé"].apply(to_str)
-df_trendeo["Code ISIC Trendeo associé"] = df_trendeo["Code ISIC Trendeo associé"].apply(to_str)
-df_hhis["k"] = df_hhis["k"].apply(to_str)
-
-df = df_hhis.merge(df_trendeo, how="outer", left_on="k", right_on="Code HS6 2022")
-df.drop(columns=[c for c in df.columns if c[0] == "i"], inplace=True)
-
-order_col = ["Code HS6", "Label HS6", "HHi Européen", "HHi Mondial", "Part UE CF", "Part UE CDV",
-             "Taux de couverture Exportations/Importations", "Taux de couverture de transit (Transit/Importations)", "Taux de couverture Exportations/Importations françaises",
-             "HHI CF", "HHI CDV", "Code ISIC", "Label ISIC", "Code HS6 2017",
-             "Importations", "Exportations", "Valeur des flux transitant dans l'UE", "Importations françaises", "Exportations françaises", "Valeur des échanges mondiaux",
-              "Quantités importées", "Quantités exportées", "Quantités transitant dans l'UE", "Quantités importées en France", "Quantité exportées en France", "Quantités totales échangées",
-              "Premier exporateur vers l'UE", "Premier exportateur mondial", "Deuxième exporateur vers l'UE", "Deuxième exportateur mondial", "Troisième exporateur vers l'UE", "Troisième exportateur mondial", "Quatrième exporateur vers l'UE", "Quatrième exportateur mondial", "Cinquième exporateur vers l'UE", "Cinquième exportateur mondial",
-              "Part du premier exportateur vers l'UE", "Part du premier exportateur mondial", "Part du deuxième exportateur vers l'UE", "Part du deuxième exportateur mondial", "Part du troisième exportateur vers l'UE", "Part du troisième exportateur mondial", "Part du quatrième exportateur vers l'UE", "Part du quatrième exportateur mondial", "Part du cinquième exportateur vers l'UE", "Part du cinquième exportateur mondial"]
-
-df = df[order_col]
+df=pd.read_csv("Hhis_02_07.csv", dtype={"Code HS6": str, "Code HS4": str, "Code ISIC": str, "Code HS6 2017": str})
 
 # --- Sidebar : Filtres globaux ---
 st.sidebar.header("Filtres globaux")
@@ -49,113 +20,115 @@ if filter_v_imp_fr:
 
 # Filtre hs2
 hs2_filter = st.sidebar.radio(
-    "Filtrer par hs2 pour les produits dans les distributions :",
+    "Filtrer les produits par catégorie :",
     options=["Tous", "Uniquement agroalimentaire", "Tous sauf agroalimentaire"],
     index=0
 )
 if hs2_filter == "Uniquement agroalimentaire":
-    df = df[df["hs2"].astype(float) < 25]
+    df = df[df["Code HS6"].apply(lambda x : int(x[:2]) < 25)]
 elif hs2_filter == "Tous sauf agroalimentaire":
-    df = df[df["hs2"].astype(float) >= 25]
+    df = df[df["Code HS6"].apply(lambda x : int(x[:2]) >= 25)]
 
 # Filtre taux_couverture_imp_exp
-taux_couverture_checkbox = st.sidebar.checkbox("Garder uniquement les produits tels que l'UE soit importatrice nette en 2024", key="taux_couverture_checkbox")
+taux_couverture_checkbox = st.sidebar.checkbox("Garder uniquement les produits tels que l'UE est importatrice nette en 2024", key="taux_couverture_checkbox")
 if taux_couverture_checkbox:
-    df = df[df["taux_couverture_imp_exp"] < 1]
-# Filtre taux_couverture_imp_exp
-taux_couverture_fr_checkbox = st.sidebar.checkbox("Garder uniquement les produits tels que la France soit importatrice nette en 2024", key="taux_couverture_fr_checkbox")
-if taux_couverture_fr_checkbox:
-    df = df[df["taux_couverture_imp_exp_fr"] < 1]
+    df = df[df["Taux de couverture Exportations/Importations"] < 1]
 # Filtre taux_couverture_transit
 filter_by_taux_couverture_transit = st.sidebar.checkbox("Filtrer les produits grâce à un taux de transit", key="filter_by_taux_couverture_transit")
 if filter_by_taux_couverture_transit:
     rap_flux_transit = st.sidebar.slider("Rapport entre les flux transitants en Europe et les importations inférieur à :", min_value=0.0, max_value=3.0, value=1.0, step=0.1, format="%.2f")
-    df = df[df["taux_couverture_transit"] < rap_flux_transit]
+    df = df[df["Taux de couverture de transit (Transit/Importations)"] < rap_flux_transit]
+# Filtre taux_couverture_imp_exp
+taux_couverture_fr_checkbox = st.sidebar.checkbox("Garder uniquement les produits tels que la France est importatrice nette en 2024", key="taux_couverture_fr_checkbox")
+if taux_couverture_fr_checkbox:
+    df = df[df["Taux de couverture Exportations/Importations françaises"] < 1]
+#Filtre sur éléments équivalent trendeo
+eq_trendeo_checkbox = st.sidebar.checkbox("Garder uniquement les produits qui ont une nomenclature trendeo", key="eq_trendeo_checkbox")
+if eq_trendeo_checkbox:
+    df = df[df["Label ISIC"].notna()]
+
+#Filtre sur les premiers pays
+filter_by_countries = st.sidebar.checkbox("Filtrer les produits par pays exportateurs", key="filter_by_countries")
+if filter_by_countries:
+    st.sidebar.markdown(
+        '<p style="font-size: 14px; margin: 0 0 0.5rem 0;">Prendre les <b>n₁</b> premiers exportateurs vers l\'Europe parmi les <b>n₂</b> plus gros exportateurs mondiaux</p>',
+        unsafe_allow_html=True
+    )
+    col1, col2 = st.sidebar.columns(2)
+    n1 = col1.selectbox("n₁", range(1, 6), key="n1")
+    n2 = col2.selectbox("n₂", range(n1, 6), key="n2")
+    rangs = ["Premier", "Deuxième", "Troisième", "Quatrième", "Cinquième"]
+    if n1 !=0 :
+        s_exp_ue = df[[f"{rang} exporateur vers l'UE" for rang in rangs[:n1]]]
+        s_exp_m = df[[f"{rang} exportateur mondial" for rang in rangs[:n2]]]
+        mask = (
+            s_exp_ue.apply(frozenset, axis=1)
+            .combine(s_exp_m.apply(frozenset, axis=1),
+                    lambda a, b: len(a & b) >= n1)
+        )
+        df = df[mask]
+
 # Filtre hhi_EU
-filter_by_hhi_eu = st.sidebar.checkbox("Filtrer les produits grâce à un HHi européen", key="filter_by_hhi_eu")
+st.header("Différents filtres sur les indices HHi et les parts d'investissement")
+filter_by_hhi_eu = st.checkbox("Filtrer les produits par l'indice HHi européen", key="filter_by_hhi_eu")
 if filter_by_hhi_eu:
-    hhi_eu = st.sidebar.slider("HHi européen supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
-    df = df[df["hhi_EU"] >= hhi_eu]
+    hhi_eu = st.slider("HHi européen supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
+    df = df[df["HHi Européen"] >= hhi_eu]
 # Filtre hhi_M
-filter_by_hhi_m = st.sidebar.checkbox("Filtrer les produits grâce à un HHi mondial", key="filter_by_hhi_m")
+filter_by_hhi_m = st.checkbox("Filtrer les produits par l'indice HHi mondial", key="filter_by_hhi_m")
 if filter_by_hhi_m:
-    hhi_M = st.sidebar.slider("HHi mondial supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
-    df = df[df["hhi_M"] >= hhi_M]
+    hhi_M = st.slider("HHi mondial supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
+    df = df[df["HHi Mondial"] >= hhi_M]
+# Filtre hhi_FR
+filter_by_hhi_fr = st.checkbox("Filtrer les produits par l'indice HHi français", key="filter_by_hhi_fr")
+if filter_by_hhi_fr:
+    hhi_FR = st.slider("HHi français supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
+    df = df[df["HHi Français"] >= hhi_FR]
 
+# Filtre hhi_M
+filter_by_part_UE_CDV = st.checkbox("Filtrer les produits par la part européenne du contrôle opérationel", key="filter_by_part_UE_CDV")
+if filter_by_part_UE_CDV:
+    part_UE_CDV = st.slider("Part UE Contrôle opérationel supérieure à :", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f")
+    df = df[df["Part UE Contrôle opérationel"] >= part_UE_CDV]
+# Filtre hhi_FR
+filter_by_part_UE_CF = st.checkbox("Filtrer les produits par la part européenne du contrôle financier", key="filter_by_part_UE_CF")
+if filter_by_part_UE_CF:
+    part_UE_CF = st.slider("Part UE Contrôle financier supérieure à :", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f")
+    df = df[df["Part UE Contrôle financier"] >= part_UE_CF]
+# Filtre hhi_M
+filter_by_hhi_CF = st.checkbox("Filtrer les produits par l'indice HHi de contrôle financier", key="filter_by_hhi_CF")
+if filter_by_hhi_CF:
+    hhi_CF = st.slider("HHI Contrôle financier supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
+    df = df[df["HHI Contrôle financier"] >= hhi_CF]
+# Filtre hhi_FR
+filter_by_hhi_CDV = st.checkbox("Filtrer les produits par l'indice HHi français", key="filter_by_hhi_CDV")
+if filter_by_hhi_CDV:
+    hhi_CDV = st.slider("HHI Contrôle opérationel supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
+    df = df[df["HHI Contrôle opérationel"] >= hhi_CDV]
 
-# --- Sélection des méthodes (coef_*) ---
-coef_columns = [col for col in df.columns if col.startswith("coef_")]
-selected_coefs = st.multiselect(
-    "Sélectionne les méthodes à analyser :",
-    options=coef_columns,
-    default=coef_columns
-)
-
-n = (df[selected_coefs].notna().sum(axis=1) == 0).sum()
-st.write(f"{n} produits n'ont pas pu être classés")
-
-# --- Paramètres x% et y% ---
-x_percent = st.slider("x% (seuil de méthodes où le produit doit être dans le top y%) :", 0, 100, 50)
-y_percent = st.slider("y% (seuil de la distribution pour une méthode) :", 0, 100, 10)
-# --- Calcul : Produits dans le top y% pour chaque méthode ---
-l_thresholds = []
-l_cols_thresholds = []
-for coef in coef_columns:
-    threshold = np.percentile(df[coef].dropna(), 100 - y_percent)
-    if coef in selected_coefs:
-        l_thresholds.append(threshold)
-        l_cols_thresholds.append(coef)
-    col = (df[coef] >= threshold).astype(float)
-    col[df[coef].isna()] = np.nan
-    df[f"in_top_{y_percent}%_{coef[5:]}"] = col
-
-# Affichage des seuils
-df_thresholds = pd.DataFrame({"Coef":selected_coefs, "Seuil":l_thresholds})
-show_thresholds = st.checkbox("Afficher les seuils", key="show_thresholds")
-if show_thresholds:
-    st.write("### Seuils appliqués")
-    st.dataframe(df_thresholds)
-
-# --- Calcul : Produits avec au moins x% des méthodes dans le top y% ---
-n_selected_coefs = len(selected_coefs)
-if n_selected_coefs > 0:
-    top_y_columns = [f"in_top_{y_percent}%_{coef[5:]}" for coef in selected_coefs]
-    df[f"prop_methodes_in_top_{y_percent}%"] = df[top_y_columns].mean(axis=1) * 100
-    df = df[df[f"prop_methodes_in_top_{y_percent}%"] >= x_percent]
-else:
-    st.warning("Sélectionne au moins une méthode (coef_*).")
-
-# Filtre produits agro-alimentaires
-hs2_filter2 = st.radio(
-    "Afficher :",
-    options=["Tous les produits", "Uniquement les produits agroalimentaire", "Tous les produits sauf les agroalimentaires"],
-    index=0
-)
-if hs2_filter2 == "Uniquement les produits agroalimentaire":
-    df = df[df["hs2"].astype(float) < 25]
-elif hs2_filter2 == "Tous les produits sauf les agroalimentaires":
-    df = df[df["hs2"].astype(float) >= 25]
-
-# Modifier l'ordre des colonnes de df
-l_cols = ["product", f"prop_methodes_in_top_{y_percent}%", "Description", "v_imp_fr"] + [c for c in df.columns if (str(c)[:3] == "hhi")|(str(c)[0] == "t")] + ["IGPC", "IGPC_rank", "hs4", "hs2", "Description_hs4", "Description_hs2", "2007", "2002"] + [c for c in df.columns if (str(c)[0] == "c")|(str(c)[0] == "N")|(str(c)[0] == "i")]
-df = df[l_cols]
 
 # --- Sélection des colonnes à afficher ---
 all_columns = df.columns.tolist()
-default_columns = df.columns[:11]
-selected_columns = st.multiselect(
-    "Sélectionne les colonnes à afficher :",
-    options=all_columns,
-    default=default_columns
-)
+default_columns = df.columns[:12]
+selec_columns = st.checkbox("Sélection des colonnes à afficher", key="selec_columns")
+if selec_columns:
+    selected_columns = st.multiselect(
+        "Sélection des colonnes à afficher",
+        options=all_columns,
+        default=default_columns,
+        label_visibility = "collapsed"
+    )
+else:
+    selected_columns=default_columns
 
 # --- Affichage du tableau ---
 st.write("### Tableau des produits")
-st.write(f"Il y a {len(df)} produits (HS6) \"essentiels\"")
+st.write(f"Il y a {len(df)} produits (HS6) vulnérables")
 st.dataframe(df[selected_columns])
 
 # --- Téléchargement des résultats ---
-nom_fichier = st.text_input("Nom du fichier à télécharger (sans extension) :", "resultats_filtres")
+nom_fichier = st.text_input("Nom du fichier à télécharger (sans extension) :", value="resultats_filtres", key="nom_fichier")
+st.write(nom_fichier)
 
 format = st.radio(
     "Format",
@@ -165,19 +138,21 @@ format = st.radio(
 
 # Bouton de téléchargement
 if format == "csv":
-    st.download_button(
-        label="Télécharger le tableau filtré",
-        data=df.to_csv(index=False, sep=";").encode("utf-8"),
-        file_name=f"{nom_fichier}.csv",
-        mime="text/csv"
-    )
+    if st.button("Prepare download"):
+        st.download_button(
+            label="Télécharger le tableau filtré",
+            data=df.to_csv(index=False, sep=";").encode("utf-8"),
+            file_name=f"{nom_fichier}.csv",
+            mime="text/csv"
+        )
 else:
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Feuille1')
-    st.download_button(
-        label="Télécharger le tableau filtré",
-        data=output.getvalue(),
-        file_name=f"{nom_fichier}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    if st.button("Préparer le téléchargement du tableau"):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+        st.download_button(
+            label="Télécharger le tableau filtré",
+            data=output.getvalue(),
+            file_name=f"{nom_fichier}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
