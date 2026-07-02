@@ -137,7 +137,7 @@ format = st.radio(
 
 # Bouton de téléchargement
 if format == "csv":
-    if st.button("Prepare download"):
+    if st.button("Préparer le téléchargement"):
         st.download_button(
             label="Télécharger le tableau filtré",
             data=df.to_csv(index=False, sep=";").encode("utf-8"),
@@ -145,7 +145,7 @@ if format == "csv":
             mime="text/csv"
         )
 else:
-    if st.button("Préparer le téléchargement du tableau"):
+    if st.button("Préparer le téléchargement"):
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False)
