@@ -69,7 +69,7 @@ if filter_by_countries:
         df = df[mask]
 
 # Filtre hhi_EU
-st.header("Différents filtres sur les indices HHi et les parts d'investissement")
+st.header("Différents filtres sur les indices HHi et les parts d'investissements")
 filter_by_hhi_eu = st.checkbox("Filtrer les produits par l'indice HHi européen", key="filter_by_hhi_eu")
 if filter_by_hhi_eu:
     hhi_eu = st.slider("HHi européen supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
