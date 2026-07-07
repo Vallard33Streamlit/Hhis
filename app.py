@@ -7,7 +7,7 @@ from io import BytesIO
 
 st.set_page_config(layout="wide")
 
-df=pd.read_csv("Hhis_02_07.csv", dtype={"Code HS6": str, "Code HS4": str, "Code ISIC": str, "Code HS6 2017": str})
+df=pd.read_csv("Hhis.csv", dtype={"Code HS6": str, "Code HS4": str, "Code ISIC": str, "Code HS6 2017": str})
 
 # --- Sidebar : Filtres globaux ---
 st.sidebar.header("Filtres globaux")
