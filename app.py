@@ -88,13 +88,13 @@ if filter_by_hhi_fr:
 # Filtre part_UE_CDV
 filter_by_part_UE_CDV = st.checkbox("Filtrer les produits par la part européenne du contrôle opérationel", key="filter_by_part_UE_CDV")
 if filter_by_part_UE_CDV:
-    part_UE_CDV = st.slider("Part UE Contrôle opérationel supérieure à :", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f")
-    df = df[df["Part UE Contrôle opérationel"] >= part_UE_CDV]
+    part_UE_CDV = st.slider("Part UE Contrôle opérationel inférieure à :", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f")
+    df = df[df["Part UE Contrôle opérationel"] <= part_UE_CDV]
 # Filtre part_UE_CF
 filter_by_part_UE_CF = st.checkbox("Filtrer les produits par la part européenne du contrôle financier", key="filter_by_part_UE_CF")
 if filter_by_part_UE_CF:
-    part_UE_CF = st.slider("Part UE Contrôle financier supérieure à :", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f")
-    df = df[df["Part UE Contrôle financier"] >= part_UE_CF]
+    part_UE_CF = st.slider("Part UE Contrôle financier inférieure à :", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f")
+    df = df[df["Part UE Contrôle financier"] <= part_UE_CF]
 # Filtre hhi_CDV
 filter_by_hhi_CDV = st.checkbox("Filtrer les produits par l'indice HHi de contrôle opérationel", key="filter_by_hhi_CDV")
 if filter_by_hhi_CDV:
