@@ -66,6 +66,8 @@ if filter_by_countries:
         )
         df = df[mask]
 
+n_ess_elasticite = df["Essentialité grâce aux élasticités"].sum()
+n_prio = df["Priorité d'Argos"].notna().sum()
 # Filtre hhi_EU
 st.header("Différents filtres sur les indices HHi et les parts d'investissements")
 filter_by_hhi_eu = st.checkbox("Filtrer les produits par l'indice HHi européen", key="filter_by_hhi_eu")
@@ -122,7 +124,7 @@ else:
 
 # --- Affichage du tableau ---
 st.write("### Tableau des produits")
-st.write(f"Il y a {len(df)} produits (HS6) vulnérables")
+st.write(f"Il y a {len(df)} produits (HS6) vulnérables, dont {df["Essentialité grâce aux élasticités"].sum()} essentiels selon les critères d'élasticités (sur {n_ess_elasticite}) et {df["Priorité d'Argos"].notna().sum()} prioritaires selon Argos (sur {n_prio}).")
 st.dataframe(df[selected_columns])
 
 # --- Téléchargement des résultats ---
