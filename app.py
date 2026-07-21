@@ -108,7 +108,7 @@ if filter_by_hhi_CF:
 
 # --- Sélection des colonnes à afficher ---
 all_columns = df.columns.tolist()
-default_columns = df.columns[:12]
+default_columns = df.columns[:17]
 selec_columns = st.checkbox("Sélection des colonnes à afficher", key="selec_columns")
 if selec_columns:
     selected_columns = st.multiselect(
