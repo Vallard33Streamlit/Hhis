@@ -1,13 +1,11 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import sys
-import os
 from io import BytesIO
 
 st.set_page_config(layout="wide")
 
-df=pd.read_csv("Hhis.csv", dtype={"Code HS6": str, "Code HS4": str, "Code ISIC": str, "Code HS6 2017": str})
+df=pd.read_csv("hhis_et_autres.csv", dtype={"Code HS6": str, "Code HS4": str, "Code ISIC": str, "Code HS6 2017": str})
 
 # --- Sidebar : Filtres globaux ---
 st.sidebar.header("Filtres globaux")
