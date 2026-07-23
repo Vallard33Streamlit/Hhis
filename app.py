@@ -27,6 +27,11 @@ if hs2_filter == "Uniquement agroalimentaire":
 elif hs2_filter == "Tous sauf agroalimentaire":
     df = df[df["Code HS6"].apply(lambda x : int(x[:2]) >= 25)]
 
+imp_checkbox = st.sidebar.checkbox("Enlever les produits moins importants", key="imp_checkbox")
+if imp_checkbox:
+    s_not_imp = {24, 33, 37, 48, 49, 57, 61, 62, 64, 65, 66, 67, 92, 95, 96, 97, 99}
+    df = df[df["Code HS6"].apply(lambda x : not (int(x[:2]) in s_not_imp))]
+
 # Filtre taux_couverture_imp_exp
 taux_couverture_checkbox = st.sidebar.checkbox("Garder uniquement les produits tels que l'UE est importatrice nette en 2024", key="taux_couverture_checkbox")
 if taux_couverture_checkbox:
@@ -106,7 +111,10 @@ if filter_by_hhi_CF:
     hhi_CF = st.slider("HHI Contrôle financier supérieur à :", min_value=0.0, max_value=1.0, value=0.25, step=0.01, format="%.2f")
     df = df[(df["HHI Contrôle financier"] >= hhi_CF)|(df["HHI Contrôle financier"].isna())]
 
-
+filter_by_igpc_rank = st.checkbox(f"Filtrer les produits selon le rang IGPC (score de centralité d'AIPNET)", key="filter_by_igpc_rank")
+if filter_by_igpc_rank:
+    igpc_rank = st.slider(f"Rang IGPC supérieur à :", min_value=0, max_value=100, value=50, step=1)
+    df = df[(df["rang IGPC (aipnet)"] >= igpc_rank) | (df["rang IGPC (aipnet)"].isna())]
 
 # --- Sélection des colonnes à afficher ---
 all_columns = df.columns.tolist()
