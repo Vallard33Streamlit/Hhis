@@ -98,7 +98,6 @@ if filter_by_countries:
     l_filtres.append(("Prendre les n₁ premiers exportateurs vers l\'Europe parmi les n₂ plus gros exportateurs mondiaux", f"n₁ = {n1}, n₂ = {n2}"))
 
 n_ess_elasticite = df["Essentialité grâce aux élasticités"].sum()
-n_prio = df["Priorité d'Argos"].notna().sum()
 # Filtre hhi_EU
 st.header("Différents filtres sur les indices HHi et les parts d'investissements")
 filter_by_hhi_eu = st.checkbox("Filtrer les produits par l'indice HHi européen", key="filter_by_hhi_eu")
@@ -153,7 +152,7 @@ if filter_by_igpc_rank:
 
 # --- Sélection des colonnes à afficher ---
 all_columns = df.columns.tolist()
-default_columns = df.columns[:17]
+default_columns = df.columns[:15]
 selec_columns = st.checkbox("Sélection des colonnes à afficher", key="selec_columns")
 if selec_columns:
     selected_columns = st.multiselect(
@@ -167,7 +166,7 @@ else:
 
 # --- Affichage du tableau ---
 st.write("### Tableau des produits")
-st.write(f"Il y a {len(df)} produits (HS6) vulnérables, dont {df["Essentialité grâce aux élasticités"].sum()} essentiels selon les critères d'élasticité (sur {n_ess_elasticite}) et {df["Priorité d'Argos"].notna().sum()} prioritaires selon Argos (sur {n_prio}). De plus, le rang IGPC minimal est {int(df["rang IGPC (aipnet)"].min())} tandis que le rang médian est {int(df["rang IGPC (aipnet)"].median())} et qu'il y {(df["rang IGPC (aipnet)"]>=50).sum()} produits au dessus de 50.")
+st.write(f"Il y a {len(df)} produits (HS6) vulnérables, dont {df["Essentialité grâce aux élasticités"].sum()} essentiels selon les critères d'élasticité (sur {n_ess_elasticite}). De plus, le rang IGPC minimal est {int(df["rang IGPC (aipnet)"].min())} tandis que le rang médian est {int(df["rang IGPC (aipnet)"].median())} et qu'il y {(df["rang IGPC (aipnet)"]>=50).sum()} produits au dessus de 50.")
 st.dataframe(df[selected_columns])
 
 # --- Téléchargement des résultats ---
@@ -203,7 +202,6 @@ if st.button("🔧 Préparer le téléchargement en excel"):
         infos = [
             ("Nombre de produits :", len(df)),
             ("Nombres de produits essentiels selon les critères d'élasticité :", df["Essentialité grâce aux élasticités"].sum()),
-            ("Nombres de produits prioritaires selon Argos :", df["Priorité d'Argos"].notna().sum()),
             ("Rang IGPC minimal :", int(df["rang IGPC (aipnet)"].min())),
             ("Rang IGPC médian :", int(df["rang IGPC (aipnet)"].median())),
             ("Nombre de produits dont le rang IGPC est supérieur à 50 :", (df["rang IGPC (aipnet)"]>=50).sum())
